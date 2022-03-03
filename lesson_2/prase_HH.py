@@ -3,6 +3,11 @@ import os
 
 import requests
 from bs4 import BeautifulSoup
+from pymongo import MongoClient
+
+client = MongoClient('localhost', 27017)
+db = client.hh
+hh = db.hh
 
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
@@ -24,7 +29,6 @@ def get_pagination(url):
 
 
 def get_data(url, count):
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     res_list = list()
 
     for page in range(0, count):
@@ -36,6 +40,7 @@ def get_data(url, count):
         for block in block_vacancy:
             title = block.find('a').getText()
             link = block.find('a').get('href')
+            company = block.find('div', class_="vacancy-serp-item__meta-info-company").find('a').getText()
             try:
                 price = block.find('span', {'data-qa': 'vacancy-serp__vacancy-compensation'}).getText().replace(' –',
                                                                                                                 '')
@@ -77,20 +82,27 @@ def get_data(url, count):
                     'title': title,
                     'salary': salary,
                     'link': link,
+                    'company': company,
                     'assets': 'hh.ru'
                 }
                 res_list.append(data_dict)
-                print(
-                    f"Должность: {title}\nЗарплата от {salary.get('min_price')} до {salary.get('max_price')}\n"
-                    f"Валюта: {salary.get('currency')}\n"
-                    f"Ссылка на вакансию: {link}")
-                print('#' * 20)
-    print(len(res_list))
-    if not os.path.exists(os.path.join(BASE_DIR, "data_vacancy")):
-        os.mkdir(os.path.join(BASE_DIR, "data_vacancy"))
 
-    with open("data_vacancy/data_hh.json", "w", encoding='utf-8') as fp:
-        json.dump(res_list, fp, indent=4, ensure_ascii=False)
+                # INSERT
+                if hh.find_one(data_dict):
+                    continue
+                else:
+                    hh.insert_one(data_dict)
+
+
+def get_info():
+    user_answer = int(input('Какую минимальную зп вы желаете: '))
+    for doc in hh.find({'salary.min_price': {'$gt': user_answer}}):
+        salary = doc.get("salary")
+        print(
+            f"Должность: {doc.get('title')}\nЗарплата от {salary.get('min_price')} до {salary.get('max_price')}\n"
+            f"Валюта: {salary.get('currency')}\n"
+            f"Ссылка на вакансию: {doc.get('link')}")
+        print('#' * 20)
 
 
 def main():
