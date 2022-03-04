@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
 client = MongoClient('localhost', 27017)
-db = client.hh
+db = client.parse_vacancy
 hh = db.hh
 
 headers = {
@@ -110,6 +110,7 @@ def main():
     url = f'https://hh.ru/search/vacancy?text=={user_answer}'
     count = get_pagination(url=url)
     get_data(url, count)
+    get_info()
 
 
 if __name__ == '__main__':
