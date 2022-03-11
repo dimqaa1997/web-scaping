@@ -70,7 +70,6 @@ def get_data():
                 'currency': currency
             }
 
-            # pprint(data_dict)
             m_trend.insert_one(data_dict)
 
         sleep(5)
